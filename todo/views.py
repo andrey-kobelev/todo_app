@@ -1,9 +1,12 @@
-from django.shortcuts import render, redirect, HttpResponse
+from django.shortcuts import render, redirect, HttpResponse, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.contrib.auth import login, logout, authenticate
 from .forms import TodoForm
+from .models import Todo
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 
 
 def home(request):
@@ -35,7 +38,7 @@ def signup_user(request):
             context['error'] = 'Passwords did not match'
             return render(request, 'todo/sign_up.html', context)
 
-
+@login_required
 def logoutuser(request):
     if request.method == 'POST':
         logout(request)
@@ -60,9 +63,10 @@ def loginuser(request):
             login(request, user)
             return redirect('currenttodo')
 
-
+@login_required
 def createtodo(request):
 
+    # импортировать свою форму и добавить ее в context
     context = {
         'form': TodoForm
     }
@@ -94,6 +98,87 @@ def createtodo(request):
             # вернуть снова форму с указанной ошибкой
             return render(request, 'todo/createtodo.html', context)
 
-
+@login_required
 def currenttodos(request):
-    return render(request, 'todo/current.html')
+    todos = Todo.objects.filter(user=request.user,
+                                datecompleted__isnull=True)
+
+    context = {
+        'todos': todos
+    }
+
+    return render(request, 'todo/current.html', context)
+
+@login_required
+def viewtodo(request, todo_pk):
+
+    # найти нужную записись в базе данных по ее ключу todo_pk
+    # функуию get_object_or_404 нужно импортировать
+    # И еще! Что бы пользователь открывающий запись имел на нее право,
+    # нужно что бы система сверяла не только ключ записи НО И ЕЕ АВТОРА -
+    # user=request.user
+    todo = get_object_or_404(Todo, pk=todo_pk, user=request.user)
+
+    context = {
+        'todo': todo,
+    }
+
+    if request.method == 'GET':
+        # Загрузить форму создания записи, что бы прям
+        # в ней читать и редактировать записи.
+        # В параметр добавить соответствующий объект
+        # данные котрого нужно отобразить в форме
+        form = TodoForm(instance=todo)
+
+        # В context передать форму
+
+        context['form'] = form
+
+        # создать новый шаблон viewtodo.html
+        return render(request, 'todo/viewtodo.html', context)
+    else:
+        try:
+            # Что бы не возникла ошибка IntegrityError, котрая счиатет что мы пытаемся создать новый объект
+            # Нужно уточнить, что мы хотим изменить уже существующий объект instance=todo
+            form = TodoForm(request.POST, instance=todo)
+
+            form.save()
+
+            return redirect('currenttodo')
+        except ValueError:
+            form = TodoForm(instance=todo)
+            context['error'] = 'Bad info'
+            context['form'] = form
+
+            return render(request, 'todo/viewtodo.html', context)
+
+@login_required
+def completetodo(request, todo_pk):
+    todo = get_object_or_404(Todo, pk=todo_pk, user=request.user)
+    if request.method == 'POST':
+        todo.datecompleted = timezone.now()
+        todo.save()
+        return redirect('currenttodo')
+    else:
+        pass
+
+@login_required
+def deletetodo(request, todo_pk):
+    todo = get_object_or_404(Todo, pk=todo_pk, user=request.user)
+    if request.method == 'POST':
+        todo.delete()
+        return redirect('currenttodo')
+    else:
+        pass
+
+@login_required
+def completedtodo(request):
+    # указать порядок перечисления объектов(дат выполнеия)
+    # вызывая метод .order_by('-datecompleted')
+    todos = Todo.objects.filter(user=request.user,
+                                datecompleted__isnull=False).order_by('-datecompleted')
+    context = {
+        'todos': todos
+    }
+
+    return render(request, 'todo/completedtodo.html', context)
