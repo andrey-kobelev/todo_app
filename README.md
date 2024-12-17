@@ -18,8 +18,12 @@
 Клонировать репозиторий и перейти в него в командной строке:
 
 ```
-git https://github.com/andrey-kobelev/todo_app.git
+git clone https://github.com/andrey-kobelev/todo_app.git
 ```
+
+```  
+cd todo_app
+``` 
 
 Cоздать и активировать виртуальное окружение:
 
