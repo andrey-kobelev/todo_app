@@ -58,5 +58,11 @@ python3 manage.py runserver
 ```
 
 
-### Над проектом работал:  
-* [Kobelev Andrey](https://github.com/andrey-kobelev)
+## Автор
+
+[Kobelev Andrey](https://github.com/andrey-kobelev)
+
+## Стек
+
+- [Python 3.9](https://www.python.org/downloads/release/python-390/)
+- [Django5.1.4](https://docs.djangoproject.com/en/5.1/releases/5.1.4/)
